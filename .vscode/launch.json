@@ -1,0 +1,22 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": ".NET Core Launch (web) with Dapr",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "daprd-debug",
+            "program": "${workspaceFolder}/weather/bin/Debug/net5.0/weather.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/weather",
+            "stopAtEntry": false,
+            "env": {
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "sourceFileMap": {
+                "/Views": "${workspaceFolder}/Views"
+            },
+            "postDebugTask": "daprd-down"
+        }
+    ]
+}
