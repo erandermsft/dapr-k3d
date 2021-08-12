@@ -3,12 +3,11 @@
 echo "on-create start" >> ~/status
 
 # create a network
-docker network create kind
+docker network create dapr
 
 # create local registry
-#docker run -d --net kind --restart=always -p "127.0.0.1:5000:5000" --name registry registry:2
 k3d registry create registry.localhost --port 5000
-docker network connect kind k3d-registry.localhost
+docker network connect dapr k3d-registry.localhost
 
 # push apps to local registry
 docker pull dapriosamples/hello-k8s-node:latest
@@ -22,7 +21,7 @@ docker push k3d-registry.localhost:5000/dapr-python:local
 docker rmi dapriosamples/hello-k8s-python:latest
 
 # create k3d cluster
-k3d cluster create --registry-use k3d-registry.localhost:5000 --config k3d/k3d.yaml
+k3d cluster create --registry-use k3d-registry.localhost:5000 --config deploy/k3d.yaml
 kubectl wait node --for condition=ready --all --timeout=60s
 
 # install dapr
