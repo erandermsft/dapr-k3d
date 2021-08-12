@@ -6,9 +6,9 @@ echo "post-create start" >> ~/status
 
 # (optional) upgrade packages
 sudo apt-get update
-sudo apt-get upgrade -y
-sudo apt-get autoremove -y
-sudo apt-get clean -y
+#sudo apt-get upgrade -y
+#sudo apt-get autoremove -y
+#sudo apt-get clean -y
 
 # add your commands here
 
