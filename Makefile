@@ -1,19 +1,10 @@
-.PHONY: help all create delete deploy check clean app webv test reset-prometheus reset-grafana jumpbox
+.PHONY: help delete check logs jumpbox
 
 help :
 	@echo "Usage:"
-	@echo "   make all              - create a cluster and deploy the apps"
-	@echo "   make create           - create a kind cluster"
-	@echo "   make delete           - delete the kind cluster"
-	@echo "   make deploy           - deploy the apps to the cluster"
-	@echo "   make check            - check the endpoints with curl"
-	@echo "   make test             - run a WebValidate test"
-	@echo "   make load-test        - run a 60 second WebValidate test"
-	@echo "   make clean            - delete the apps from the cluster"
-	@echo "   make app              - build and deploy a local app docker image"
-	@echo "   make webv             - build and deploy a local WebV docker image"
-	@echo "   make reset-prometheus - reset the Prometheus volume (existing data is deleted)"
-	@echo "   make reset-grafana    - reset the Grafana volume (existing data is deleted)"
+	@echo "   make delete           - delete the k3d cluster"
+	@echo "   make check            - check the node app endpoints"
+	@echo "   make logs             - check the node app logs"
 	@echo "   make jumpbox          - deploy a 'jumpbox' pod"
 
 delete :
