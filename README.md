@@ -1,6 +1,6 @@
-# Kubernetes Dev Cluster on Codespaces Template
+# dapr in Kubernetes
 
-> Setup a Kubernetes Developer Cluster using `k3d` and `dapr` running in [GitHub Codespaces](https://github.com/features/codespaces)
+> Setup dapr in a Kubernetes Cluster using `k3d` running in [GitHub Codespaces](https://github.com/features/codespaces)
 
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
