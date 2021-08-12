@@ -2,14 +2,6 @@
 
 echo "on-create start" >> ~/status
 
-# run dotnet restore
-dotnet restore weather/weather.csproj 
-
-# copy grafana.db to /grafana
-sudo rm -f /grafana/grafana.db
-sudo cp deploy/grafanadata/grafana.db /grafana
-sudo chown -R 472:472 /grafana
-
 # create a network
 docker network create kind
 
@@ -18,12 +10,7 @@ docker network create kind
 k3d registry create registry.localhost --port 5000
 docker network connect kind k3d-registry.localhost
 
-# push ngsa-app to local repo
-docker pull ghcr.io/retaildevcrews/ngsa-app:beta
-docker tag ghcr.io/retaildevcrews/ngsa-app:beta k3d-registry.localhost:5000/ngsa:local
-docker push k3d-registry.localhost:5000/ngsa:local
-docker rmi ghcr.io/retaildevcrews/ngsa-app:beta
-
+# push apps to local registry
 docker pull dapriosamples/hello-k8s-node:latest
 docker tag dapriosamples/hello-k8s-node:latest k3d-registry.localhost:5000/dapr-node:local
 docker push k3d-registry.localhost:5000/dapr-node:local
@@ -35,7 +22,7 @@ docker push k3d-registry.localhost:5000/dapr-python:local
 docker rmi dapriosamples/hello-k8s-python:latest
 
 # create k3d cluster
-k3d cluster create --registry-use k3d-registry.localhost:5000 --config deploy/k3d/k3d.yaml
+k3d cluster create --registry-use k3d-registry.localhost:5000 --config k3d/k3d.yaml
 kubectl wait node --for condition=ready --all --timeout=60s
 
 # install dapr
@@ -47,13 +34,13 @@ helm repo update
 helm install redis bitnami/redis
 
 # redis config
-kubectl apply -f deploy/dapr/redis.yaml
+kubectl apply -f deploy/redis.yaml
 
 # wait for redis master to start
 kubectl wait pod redis-master-0  --for condition=ready --timeout=60s
 
 # deploy apps
-kubectl apply -f deploy/dapr/node.yaml
-kubectl apply -f deploy/dapr/python.yaml
+kubectl apply -f deploy/node.yaml
+kubectl apply -f deploy/python.yaml
 
 echo "on-create complete" >> ~/status

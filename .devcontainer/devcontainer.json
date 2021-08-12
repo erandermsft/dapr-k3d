@@ -1,5 +1,5 @@
 {
-	"name": "Kind-K3d-in-Docker",
+	"name": "dapr-K3d",
 	"dockerFile": "Dockerfile",
 
 	// do not change these if you want Docker in Docker support
@@ -17,24 +17,12 @@
 
 	// forward ports for the app
 	"forwardPorts": [
-		3500,
-		5000,
-		9411,
-		30000,
-		30080,
-		30088,
-		32000
+		30080
 	],
 
 	// add labels
 	"portsAttributes": {
-		"3500": { "label": "dapr" },
-		"5000": { "label": "weather" },
-		"9411": { "label": "Zipkin" },
-		"30000": { "label": "Prometheus" },
-		"30080": { "label": "ngsa-app" },
-		"30088": { "label": "WebV" },
-		"32000": { "label": "Grafana" },
+		"30080": { "label": "node-app" }
 	},
 
 	// Install extensions
