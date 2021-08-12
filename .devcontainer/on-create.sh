@@ -2,6 +2,9 @@
 
 echo "on-create start" >> ~/status
 
+# prevent the dependency popup
+dotnet restore src/csharp/weather.csproj
+
 # create a network
 docker network create dapr
 
