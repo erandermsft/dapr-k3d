@@ -1,312 +1,282 @@
 # Kubernetes Dev Cluster on Codespaces Template
 
-> Setup a Kubernetes Developer Cluster using `kind` or `k3d` running in [GitHub Codespaces](https://github.com/features/codespaces)
+> Setup a Kubernetes Developer Cluster using `k3d` and `dapr` running in [GitHub Codespaces](https://github.com/features/codespaces)
 
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-> [GitHub Codespaces](https://github.com/features/codespaces) is currently in `limited public beta`
+## Prereqs
 
-## Overview
+- Access to `Codespaces`
+- A modern browser (Edge, Chrome, Safari, FireFox)
 
-This is a template that will setup a Kubernetes developer cluster using `Kind` or `K3d` in a `GitHub Codespace` or local `Dev Container`
+## Setup
 
-We use this for `inner-loop` Kubernetes development. Note that it is not appropriate for production use (but is a great `Developer Experience`)
-
-> This Codespace is tested with `zsh` and `oh-my-zsh` - it "should" work with bash ...
-
-## Create your repo
-
-Create your repo from this template and add your application code
-
-- Click the `Use this template` button
-- Enter your repo details
-
-## Open with Codespaces
-
-- Click the `Code` button on your repo
-- Click `Open with Codespaces`
-- Click `New Codespace`
-- Choose the `4 core` or `8 core` option
-
-![Create Codespace](./images/OpenWithCodespaces.jpg)
-
-## Open Workspace
-
-- When prompted, choose `Open Workspace`
-
-## Build and Deploy Cluster
-
-By default the solution will create a `kind` cluster. If you want to use [k3d](https://k3d.io/), run the make commands from the `k3d` directory
-
-  ```bash
-
-  # (optional) use the k3d makefile
-  cd k3d
-
-  # build the cluster
-  make all
-
-  ```
-
-![Running Codespace](./images/RunningCodespace.png)
+- Open a new `Codespace` from this repo
+  - Choose the 4 CPU option (at least)
+- Wait for `on-create` to complete
+  - This takes about a minute after the Codespace is visible
 
 ## Validate Deployment
 
-Output from `make all` should resemble this
+```bash
+
+# check the logs
+# you should see a new order every second
+kubectl logs --selector=app=node -c node
+
+# check the web API
+# the order should increment every second or so
+http localhost:30080/order
+
+```
+
+## Original dapr Quick Start
+
+This tutorial will get you up and running with Dapr in a Kubernetes cluster. To recap, the Python App generates messages and the Node app consumes and persists them. The following architecture diagram illustrates the components that make up this quickstart:
+
+![Architecture Diagram](./images/Architecture_Diagram.png)
+
+## Prerequisites
+
+This quickstart requires you to have the following installed on your machine:
+
+- [kubectl](https://kubernetes.io/docs/tasks/tools/install-kubectl/)
+- A Kubernetes cluster, such as [Minikube](https://docs.dapr.io/operations/hosting/kubernetes/cluster/setup-minikube/), [AKS](https://docs.dapr.io/operations/hosting/kubernetes/cluster/setup-aks/) or [GKE](https://cloud.google.com/kubernetes-engine/)
+
+Also, unless you have already done so, clone the repository with the quickstarts and ````cd```` into the right directory:
+
+```bash
+git clone [-b <dapr_version_tag>] https://github.com/dapr/quickstarts.git
+cd quickstarts
+```
+
+> **Note**: See <https://github.com/dapr/quickstarts#supported-dapr-runtime-version> for supported tags. Use `git clone https://github.com/dapr/quickstarts.git` when using the edge version of dapr runtime.
+
+## Step 1 - Setup Dapr on your Kubernetes cluster
+
+The first thing you need is an RBAC enabled Kubernetes cluster. This could be running on your machine using Minikube, or it could be a fully-fledged cluster in Azure using [AKS](https://azure.microsoft.com/en-us/services/kubernetes-service/).
+
+Once you have a cluster, follow the steps below to deploy Dapr to it. For more details, see [Deploy Dapr on a Kubernetes cluster](https://docs.dapr.io/operations/hosting/kubernetes/kubernetes-deploy/).
+
+> Please note, the CLI will install to the dapr-system namespace by default. If this namespace does not exist, the CLI will create it.
+> If you need to deploy to a different namespace, you can use ```-n mynamespace```.
+
+```bash
+dapr init --kubernetes --wait
+```
+
+Sample output:
+
+```bash
+⌛  Making the jump to hyperspace...
+  Note: To install Dapr using Helm, see here: https://docs.dapr.io/getting-started/install-dapr-kubernetes/#install-with-helm-advanced
+
+✅  Deploying the Dapr control plane to your cluster...
+✅  Success! Dapr has been installed to namespace dapr-system. To verify, run `dapr status -k' in your terminal. To get started, go here: https://aka.ms/dapr-getting-started
+```
+
+> Without the ```--wait``` flag the Dapr CLI will exit as soon as the kubernetes deployments are created. Kubernetes deployments are asyncronous by default, so we use ```--wait``` here to make sure the dapr control plane is completely deployed and running before continuing.
+
+```bash
+dapr status -k
+```
+
+You will see output like the following. All services should show ```True``` in the HEALTHY column and ```Running``` in the STATUS column before you continue.
 
 ```text
-
-default      fluentb                                   1/1   Running   0   31s
-default      jumpbox                                   1/1   Running   0   25s
-default      webv                                      1/1   Running   0   31s
-default      ngsa-memory                               1/1   Running   0   33s
-monitoring   grafana-64f7dbcf96-cfmtd                  1/1   Running   0   32s
-monitoring   prometheus-deployment-67cbf97f84-tjxm7    1/1   Running   0   32s
-
+  NAME                   NAMESPACE    HEALTHY  STATUS   REPLICAS  VERSION  AGE  CREATED              
+  dapr-operator          dapr-system  True     Running  1         1.0.1    13s  2021-03-08 11:00.21  
+  dapr-placement-server  dapr-system  True     Running  1         1.0.1    13s  2021-03-08 11:00.21  
+  dapr-dashboard         dapr-system  True     Running  1         0.6.0    13s  2021-03-08 11:00.21  
+  dapr-sentry            dapr-system  True     Running  1         1.0.1    13s  2021-03-08 11:00.21  
+  dapr-sidecar-injector  dapr-system  True     Running  1         1.0.1    13s  2021-03-08 11:00.21  
 ```
 
-## Service endpoints
+## Step 2 - Create and configure a state store
 
-- All endpoints are usable in your browser via clicking on the `Ports (4)` tab
-  - Select the `open in browser icon` on the far right
-- Some popup blockers block the new browser tab
-- If you get a gateway error, just hit refresh - it will clear once the port-forward is ready
+Dapr can use a number of different state stores (Redis, CosmosDB, DynamoDB, Cassandra, etc) to persist and retrieve state. This demo will use Redis.
+
+1. Follow [these steps](https://docs.dapr.io/getting-started/configure-redis/) to create a Redis store.
+2. Once your store is created, add the keys to the `redis.yaml` file in the `deploy` directory.
+    > **Note:** the `redis.yaml` file provided in this quickstart will work securely out-of-the-box with a Redis installed with `helm install bitnami/redis`. If you have your own Redis setup, replace the `redisHost` value  with your own Redis master address, and the redisPassword with your own Secret. You can learn more [here](https://docs.dapr.io/operations/components/component-secrets/).
+3. Apply the `redis.yaml` file and observe that your state store was successfully configured!
+
+  ```bash
+  kubectl apply -f ./deploy/redis.yaml
+  ```
+
+  ```bash
+  component.dapr.io/statestore created
+  ```
+
+## Step 3 - Deploy the Node.js app with the Dapr sidecar
+
+  ```bash
+  kubectl apply -f ./deploy/node.yaml
+  ```
+
+Kubernetes deployments are asyncronous. This means you'll need to wait for the deployment to complete before moving on to the next steps. You can do so with the following command:
+
+  ```bash
+  kubectl rollout status deploy/nodeapp
+  ```
+
+This will deploy the Node.js app to Kubernetes. The Dapr control plane will automatically inject the Dapr sidecar to the Pod. If you take a look at the ```node.yaml``` file, you will see how Dapr is enabled for that deployment:
+
+```dapr.io/enabled: true``` - this tells the Dapr control plane to inject a sidecar to this deployment.
+
+```dapr.io/app-id: nodeapp``` - this assigns a unique id or name to the Dapr application, so it can be sent messages to and communicated with by other Dapr apps.
+
+You'll also see the container image that you're deploying. If you want to update the code and deploy a new image, see **Next Steps** section.
+
+There are several different ways to access a Kubernetes service depending on which platform you are using. Port forwarding is one consistent way to access a service, whether it is hosted locally or on a cloud Kubernetes provider like AKS.
 
 ```bash
-
-# check endpoints
-make check
-
+kubectl port-forward service/nodeapp 8080:80
 ```
 
-## Validate deployment with k9s
+This will make your service available on <http://localhost:8080>
 
-- From the Codespace terminal window, start `k9s`
-  - Type `k9s` and press enter
-  - Press `0` to select all namespaces
-  - Wait for all pods to be in the `Running` state (look for the `STATUS` column)
-  - Use the arrow key to select `nsga-memory` then press the `l` key to view logs from the pod
-  - To go back, press the `esc` key
-  - To view other deployed resources - press `shift + :` followed by the deployment type (e.g. `secret`, `services`, `deployment`, etc).
-  - To exit - `:q <enter>`
-
-![k9s](./images/k9s.png)
-
-### Other interesting endpoints
-
-Open [curl.http](./curl.http)
-
-> [curl.http](./curl.http) is used in conjuction with the Visual Studio Code [REST Client](https://marketplace.visualstudio.com/items?itemName=humao.rest-client) extension.
->
-> When you open [curl.http](./curl.http), you should see a clickable `Send Request` text above each of the URLs
-
-![REST Client example](./images/RESTClient.png)
-
-Clicking on `Send Request` should open a new panel in Visual Studio Code with the response from that request like so:
-
-![REST Client example response](./images/RESTClientResponse.png)
-
-## Jump Box
-
-A `jump box` pod is created so that you can execute commands `in the cluster`
-
-- use the `kj` alias
-  - `kubectl exec -it jumpbox -- bash -l`
-    - note: -l causes a login and processes `.profile`
-    - note: `sh -l` will work, but the results will not be displayed in the terminal due to a bug
-
-- use the `kje` alias
-  - `kubectl exec -it jumpbox --`
-- example
-  - run http against the ClusterIP
-    - `kje http ngsa-memory:8080/version`
-
-## View Prometheus Dashboard
-
-- Click on the `ports` tab of the terminal window
-- Click on the `open in browser icon` on the Prometheus port (30000)
-- This will open Prometheus in a new browser tab
-
-- From the Prometheus tab
-  - Begin typing NgsaAppDuration_bucket in the `Expression` search
-  - Click `Execute`
-  - This will display the `histogram` that Grafana uses for the charts
-
-## Launch Grafana Dashboard
-
-- Grafana login info
-  - admin
-  - akdc-512
-
-- Once `make all` completes successfully
-  - Click on the `ports` tab of the terminal window
-  - Click on the `open in browser icon` on the Grafana port (32000)
-  - This will open Grafana in a new browser tab
-
-![Codespace Ports](./images/CodespacePorts.jpg)
-
-## View Grafana Dashboard
-
-- Click on `Home` at the top of the page
-- From the dashboards page, click on `NGSA`
-
-![Grafana](./images/Grafana.jpg)
-
-## Run a load test
+> **Optional**: If you are using a public cloud provider, you can substitue your EXTERNAL-IP address instead of port forwarding. You can find it with:
 
 ```bash
-
-# from Codespaces terminal
-
-# run a baseline test (will generate warnings in Grafana)
-make test
-
-# run a 60 second load test
-make load-test
-
+kubectl get svc nodeapp
 ```
 
-- Switch to the Grafana brower tab
-- The test will generate 400 / 404 results
-- The requests metric will go from green to yellow to red as load increases
-  - It may skip yellow
-- As the test completes
-  - The metric will go back to green (1.0)
-  - The request graph will return to normal
+## Step 4 - Verify Service
 
-![Load Test](./images/LoadTest.jpg)
-
-## View Fluent Bit Logs
-
-- Start `k9s` from the Codespace terminal
-- Select `fluentb` and press `enter`
-- Press `enter` again to see the logs
-- Press `s` to Toggle AutoScroll
-- Press `w` to Toggle Wrap
-- Review logs that will be sent to Log Analytics when configured
-
-## Build and deploy a local version of WebValidate
-
-- Switch back to your Codespaces tab
+To call the service that you set up port forwarding to, from a command prompt run:
 
 ```bash
-
-# from Codespaces terminal
-
-# make and deploy a local version of WebV to k8s
-make webv
-
+curl http://localhost:8080/ports
 ```
 
-## Build and deploy a local version of ngsa-memory
+Expected output:
 
-- Switch back to your Codespaces tab
+```json
+{"DAPR_HTTP_PORT":"3500","DAPR_GRPC_PORT":"50001"}
+```
+
+Next submit an order to the app
 
 ```bash
-
-# from Codespaces terminal
-
-# make and deploy a local version of ngsa-memory to k8s
-make app
-
+curl --request POST --data @sample.json --header Content-Type:application/json http://localhost:8080/neworder
 ```
 
-## Next Steps
+Expected output:
+Empty reply from server
 
-> [Makefile](./Makefile) is a good place to start exploring
-
-## dapr Lab
-
-> make sure you are in the root of the repo
-
-### Create and run a Web API app with dapr
-
-Create a new dotnet webapi project
+Confirm the order was persisted by requesting it from the app
 
 ```bash
-
-mkdir -p dapr-app
-cd dapr-app
-dotnet new webapi --no-https
-
+curl http://localhost:8080/order
 ```
 
-Run the app with dapr
+Expected output:
+
+```json
+{"orderId":"42"}
+```
+
+> **Optional**: Now it would be a good time to get acquainted with the [Dapr dashboard](https://docs.dapr.io/reference/cli/dapr-dashboard/). Which is a convenient interface to check status, information and logs of applications running on Dapr. The following command will make it available on <http://localhost:9999/>
 
 ```bash
-
-dapr run -a myapp -p 5000 -H 3500 -- dotnet run
-
+dapr dashboard -k -p 9999
 ```
 
-Check the endpoints
+## Step 5 - Deploy the Python app with the Dapr sidecar
 
-- open `dapr.http`
-  - click on the `dotnet app` `send request` link
-  - click on the `dapr endpoint` `send request` link
+Next, take a quick look at the Python app. Navigate to the Python app in the kubernetes quickstart: `cd quickstarts/hello-kubernetes/python` and open `app.py`.
 
-Open Zipkin
+At a quick glance, this is a basic Python app that posts JSON messages to `localhost:3500`, which is the default listening port for Dapr. You can invoke the Node.js application's `neworder` endpoint by posting to `v1.0/invoke/nodeapp/method/neworder`. The message contains some `data` with an orderId that increments once per second:
 
-- Click on the `Ports` tab
-  - Open the `Zipkin` link
-  - Click on `Run Query`
-    - Explore the traces generated automatically with dapr
+```python
+n = 0
+while True:
+    n += 1
+    message = {"data": {"orderId": n}}
 
-Stop the app by pressing `ctl-c`
+    try:
+        response = requests.post(dapr_url, json=message)
+    except Exception as e:
+        print(e)
 
-Clean up
+    time.sleep(1)
+```
+
+Deploy the Python app to your Kubernetes cluster:
 
 ```bash
-
-cd ..
-rm -rf dapr-app
-
+kubectl apply -f ./deploy/python.yaml
 ```
 
-### Add dapr SDK to the weather app
+As with above, the following command will wait for the deployment to complete:
 
-> Changes to the app have already been made and are detailed below
+```bash
+kubectl rollout status deploy/pythonapp
+```
 
-- Open `.vscode/launch.json`
-  - Added `.NET Core Launch (web) with Dapr` configuration
-- Open `.vscode/task.json`
-  - Added `daprd-debug` and `daprd-down` tasks
-- Open `weather/weather.csproj`
-  - Added `dapr.aspnetcore` package reference
-- Open `weather/Startup.cs`
-  - Injected dapr into the services
-    - Line 29 `services.AddControllers().AddDapr()`
-  - Added `Cloud Events`
-    - Line 40 `app.UseCloudEvents()`
-- Open `weather/Controllers/WeatherForecastController.cs`
-  - `PostWeatherForecast` is a new function for `sending` pub-sub events
-    - Added the `Dapr.Topic` attribute
-    - Got the `daprClient` via Dependency Injection
-    - Published the model to the `State Store`
-  - `Get`
-    - Added the `daprClient` via Dependency Injection
-    - Retrieved the model from the `State Store` 
-  - Set a breakpoint on lines 30 and 38
+## Step 6 - Observe messages
 
-### Run the dapr weather app
+Now that the Node.js and Python applications are deployed, watch messages come through:
 
-  - Press `F5` to run
-  - Open `dapr.http`
-    - Send a message via dapr
-      - Click on `Send Request` under `post to dapr`
-      - Click `continue` when you hit the breakpoint
-      - 200 OK
-    - Get the model from the `State Store`
-      - Click on `Send Request` under `dapr endpoint`
-      - Click `continue` when you hit the breakpoint
-      - Verify the value from the POST request appears
-    - Change the `temperatureC` value in POST request and repeat
+Get the logs of the Node.js app:
 
-## FAQ
+```bash
+kubectl logs --selector=app=node -c node --tail=-1
+```
 
-- Why don't we use helm to deploy Kubernetes manifests?
-  - The target audience for this repository is app developers who are beginning their Kubernetes journey so we chose simplicity for the Developer Experience.
-  - In our daily work, we use Helm for deployments and it is installed in the `.devcontainer` should you want to use it.
+If all went well, you should see logs like this:
+
+```text
+Got a new order! Order ID: 1
+Successfully persisted state
+Got a new order! Order ID: 2
+Successfully persisted state
+Got a new order! Order ID: 3
+Successfully persisted state
+```
+
+## Step 7 - Confirm successful persistence
+
+Call the Node.js app's order endpoint to get the latest order. Grab the external IP address that you saved before and, append "/order" and perform a GET request against it (enter it into your browser, use Postman, or curl it!):
+
+```bash
+curl $NODE_APP/order
+{"orderID":"42"}
+```
+
+You should see the latest JSON in response!
+
+## Step 8 - Cleanup
+
+Once you're done, you can spin down your Kubernetes resources by navigating to the `./deploy` directory and running:
+
+```bash
+kubectl delete -f .
+```
+
+This will spin down each resource defined by the .yaml files in the `deploy` directory, including the state component.
+
+## Deploying your code
+
+Now that you're successfully working with Dapr, you probably want to update the code to fit your scenario. The Node.js and Python apps that make up this quickstart are deployed from container images hosted on a private [Azure Container Registry](https://azure.microsoft.com/en-us/services/container-registry/). To create new images with updated code, you'll first need to install docker on your machine. Next, follow these steps:
+
+1. Update Node or Python code as you see fit!
+2. Navigate to the directory of the app you want to build a new image for.
+3. Run `docker build -t <YOUR_IMAGE_NAME> .` You can name your image whatever you like. If you're planning on hosting it on docker hub, then it should start with `<YOUR_DOCKERHUB_USERNAME>/`.
+4. Once your image has built you can see it on your machines by running `docker images`.
+5. To publish your docker image to docker hub (or another registry), first login: `docker login`. Then run`docker push <YOUR IMAGE NAME>`.
+6. Update your .yaml file to reflect the new image name.
+7. Deploy your updated Dapr enabled app: `kubectl apply -f <YOUR APP NAME>.yaml`.
+
+## Related links
+
+- [Guidelines for production ready deployments on Kubernetes](https://docs.dapr.io/operations/hosting/kubernetes/kubernetes-production/)
+
+## Next steps
+
+- Explore additional [quickstarts](../README.md#quickstarts) and deploy them locally or on Kubernetes.
 
 ### Engineering Docs
 

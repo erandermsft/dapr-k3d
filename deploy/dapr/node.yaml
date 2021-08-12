@@ -1,0 +1,43 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: nodeapp
+  labels:
+    app: node
+spec:
+  type: NodePort
+  selector:
+    app: node
+  ports:
+  - protocol: TCP
+    port: 3000
+    targetPort: 3000
+    nodePort: 30080
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nodeapp
+  labels:
+    app: node
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node
+  template:
+    metadata:
+      labels:
+        app: node
+      annotations:
+        dapr.io/enabled: "true"
+        dapr.io/app-id: "nodeapp"
+        dapr.io/app-port: "3000"
+    spec:
+      containers:
+      - name: node
+        image: k3d-registry.localhost:5000/dapr-node:local
+        ports:
+        - containerPort: 3000
+        imagePullPolicy: Always
